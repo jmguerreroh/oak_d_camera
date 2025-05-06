@@ -65,7 +65,7 @@ macro(dai_add_node_ros2 node_name node_src)
 
 endmacro()
 
-dai_add_node_ros2(rgbd_stereo_node src/rgbd_stereo_publisher.cpp)
+dai_add_node_ros2(camera_node src/camera_publisher.cpp)
 
 install(DIRECTORY rviz DESTINATION share/${PROJECT_NAME})
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
@@ -73,7 +73,7 @@ install(DIRECTORY urdf DESTINATION share/${PROJECT_NAME})
 install(DIRECTORY meshes DESTINATION share/${PROJECT_NAME})
 
 install(TARGETS
-  rgbd_stereo_node
+  camera_node
   DESTINATION lib/${PROJECT_NAME})
 
 ament_package()

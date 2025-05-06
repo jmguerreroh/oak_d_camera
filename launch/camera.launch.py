@@ -12,7 +12,7 @@ import launch_ros.descriptions
 
 def generate_launch_description():
     default_rviz = os.path.join(get_package_share_directory('oak_d_camera'),
-                                'rviz', 'rgbd_stereo_pcl.rviz')
+                                'rviz', 'camera.rviz')
     urdf_launch_dir = os.path.join(get_package_share_directory('oak_d_camera'), 'launch')
 
 
@@ -39,7 +39,7 @@ def generate_launch_description():
     use_lr_raw      = LaunchConfiguration('use_lr_raw',     default = True)
     use_pointcloud  = LaunchConfiguration('use_pointcloud', default = True)
     pc_color        = LaunchConfiguration('pc_color',       default = True)
-    only_rgb        = LaunchConfiguration('only_rgb',       default = False)
+    only_color        = LaunchConfiguration('only_color',       default = False)
     use_base        = LaunchConfiguration('use_base',       default = False)
 
 
@@ -148,10 +148,10 @@ def generate_launch_description():
         default_value=pc_color,
         description='Use color in the point cloud.')
 
-    declare_only_rgb_cmd = DeclareLaunchArgument(
-        'only_rgb',
-        default_value=only_rgb,
-        description='Use only RGB image.')
+    declare_only_color_cmd = DeclareLaunchArgument(
+        'only_color',
+        default_value=only_color,
+        description='Use only Color image.')
 
     declare_use_base_cmd = DeclareLaunchArgument(
         'use_base',
@@ -174,8 +174,8 @@ def generate_launch_description():
                                               'use_base'    : use_base}.items())
 
 
-    rgbd_stereo_node = launch_ros.actions.Node(
-            package='oak_d_camera', executable='rgbd_stereo_node',
+    camera_node = launch_ros.actions.Node(
+            package='oak_d_camera', executable='camera_node',
             output='screen',
             parameters=[{'tf_prefix': tf_prefix},
                         {'lrcheck': lrcheck},
@@ -188,7 +188,7 @@ def generate_launch_description():
                         {'use_lr_raw': use_lr_raw},
                         {'use_pointcloud': use_pointcloud},
                         {'pc_color': pc_color},
-                        {'only_rgb': only_rgb},
+                        {'only_color': only_color},
                         {'use_pointcloud': use_pointcloud},
                         {'pc_color': pc_color}])
 
@@ -201,7 +201,7 @@ def generate_launch_description():
                                 ('image', 'stereo/converted_depth')],
                     condition=IfCondition(
                         PythonExpression(
-                            ["'", use_depth, "' == 'True' and '", use_pointcloud, "' == 'True' and '", only_rgb, "' == 'False'"]
+                            ["'", use_depth, "' == 'True' and '", use_pointcloud, "' == 'True' and '", only_color, "' == 'False'"]
                         )
                     )
                 )
@@ -211,12 +211,12 @@ def generate_launch_description():
                     plugin='depth_image_proc::PointCloudXyzrgbNode',
                     name='point_cloud_xyzrgb_node',
                     remappings=[('depth_registered/image_rect', 'stereo/converted_depth'),
-                                ('rgb/image_rect_color', 'rgb/image'),
-                                ('rgb/camera_info', 'rgb/camera_info'),
+                                ('rgb/image_rect_color', 'color/image'),
+                                ('rgb/camera_info', 'color/camera_info'),
                                 ('points', 'stereo/points')],
                     condition=IfCondition(
                         PythonExpression(
-                            ["'", use_depth, "' == 'True' and '", use_pointcloud, "' == 'True' and '", pc_color, "' == 'True' and '", only_rgb, "' == 'False'"]
+                            ["'", use_depth, "' == 'True' and '", use_pointcloud, "' == 'True' and '", pc_color, "' == 'True' and '", only_color, "' == 'False'"]
                         )
                     )
                 )
@@ -231,7 +231,7 @@ def generate_launch_description():
                             ('points', 'stereo/points')],
                 condition=IfCondition(
                     PythonExpression(
-                        ["'", use_depth, "' == 'True' and '", use_pointcloud, "' == 'True' and '", pc_color, "' == 'False' and '", only_rgb, "' == 'False'"]
+                        ["'", use_depth, "' == 'True' and '", use_pointcloud, "' == 'True' and '", pc_color, "' == 'False' and '", only_color, "' == 'False'"]
                     )
                 )
             )
@@ -280,10 +280,10 @@ def generate_launch_description():
     ld.add_action(declare_use_lr_raw_cmd)
     ld.add_action(declare_use_pointcloud_cmd)
     ld.add_action(declare_point_cloud_color_cmd)
-    ld.add_action(declare_only_rgb_cmd)
+    ld.add_action(declare_only_color_cmd)
     ld.add_action(declare_use_base_cmd)
 
-    ld.add_action(rgbd_stereo_node)
+    ld.add_action(camera_node)
     ld.add_action(urdf_launch)
     ld.add_action(point_cloud_container)
     ld.add_action(rviz_node)

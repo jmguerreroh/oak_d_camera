@@ -34,7 +34,7 @@ This package provides a ROS 2 launch file to initialize and configure the OAK-D 
 To launch the OAK-D camera node with default parameters:
 
 ```bash
-ros2 launch oak_d_camera rgbd_stereo.launch.py
+ros2 launch oak_d_camera camera.launch.py
 
 ```
 
@@ -66,7 +66,7 @@ Please refer to [StereoDepth documentation](https://docs.luxonis.com/software/de
 
 #### Options
 
-- `only_rgb`: Enable publishing of only RGB images. Default: `False`
+- `only_color`: Enable publishing of only Color images. Default: `False`
 - `use_rviz`: Launch RViz for visualization. Default: `True`
   `use_depth`: Enable depth image publishing. Default: `True`
 - `use_disparity`: Enable disparity image publishing. Default: `True`
@@ -77,7 +77,7 @@ Please refer to [StereoDepth documentation](https://docs.luxonis.com/software/de
   
 ## Visualizing in RViz
 
-The launch file opens RViz with a pre-configured view. You can modify `rviz/rgbd_stereo_pcl.rviz` to customize the visualization.
+The launch file opens RViz with a pre-configured view. You can modify `rviz/camera.rviz` to customize the visualization.
 
 ## About
 

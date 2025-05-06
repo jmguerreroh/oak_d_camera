@@ -61,12 +61,12 @@ std::tuple<dai::Pipeline, int, int, int, int> createPipeline(
   // Disables chunk size for XLink transfer
   pipeline.setXLinkChunkSize(0);
 
-  // Sets the resolution for the mono cameras and RGB camera
+  // Sets the resolution for the mono cameras and color camera
   dai::node::MonoCamera::Properties::SensorResolution monoResolution =
     dai::node::MonoCamera::Properties::SensorResolution::THE_480_P;
   dai::ColorCameraProperties::SensorResolution colorResolution =
     dai::ColorCameraProperties::SensorResolution::THE_1080_P;
-  int stereoWidth = 640, stereoHeight = 480, rgbWidth = 1920, rgbHeight = 1080;
+  int stereoWidth = 640, stereoHeight = 480, colorWidth = 1920, colorHeight = 1080;
 
 
   // ------------------------------
@@ -89,24 +89,24 @@ std::tuple<dai::Pipeline, int, int, int, int> createPipeline(
 
 
   // ------------------------------
-  // RGB Camera
+  // Color Camera
   // ------------------------------
 
-  // Creates node for RGB camera and XLink output connection
-  std::shared_ptr<dai::node::ColorCamera> rgbCam = pipeline.create<dai::node::ColorCamera>();
-  std::shared_ptr<dai::node::XLinkOut> xoutRgb = pipeline.create<dai::node::XLinkOut>();
+  // Creates node for Color camera and XLink output connection
+  std::shared_ptr<dai::node::ColorCamera> colorCam = pipeline.create<dai::node::ColorCamera>();
+  std::shared_ptr<dai::node::XLinkOut> xoutColor = pipeline.create<dai::node::XLinkOut>();
 
-  // Configures stream names for RGB output
-  xoutRgb->setStreamName("rgb");
+  // Configures stream names for Color output
+  xoutColor->setStreamName("color");
 
-  // RGB camera configuration
-  rgbCam->setBoardSocket(dai::CameraBoardSocket::CAM_A);
-  rgbCam->setResolution(colorResolution);
-  rgbCam->setColorOrder(dai::ColorCameraProperties::ColorOrder::BGR);
-  rgbCam->setFps(35);
+  // Color camera configuration
+  colorCam->setBoardSocket(dai::CameraBoardSocket::CAM_A);
+  colorCam->setResolution(colorResolution);
+  colorCam->setColorOrder(dai::ColorCameraProperties::ColorOrder::BGR);
+  colorCam->setFps(35);
 
-  // Link RGB camera to its XLink output
-  rgbCam->video.link(xoutRgb->input);
+  // Link Color camera to its XLink output
+  colorCam->video.link(xoutColor->input);
 
 
   // ------------------------------
@@ -148,7 +148,7 @@ std::tuple<dai::Pipeline, int, int, int, int> createPipeline(
     stereo->setLeftRightCheck(lrcheck); // Enable/disable left-right check
     stereo->setExtendedDisparity(extended); // Enable extended disparity
     stereo->setSubpixel(subpixel); // Enable subpixel mode
-    stereo->setDepthAlign(dai::CameraBoardSocket::CAM_A); // Align depth to RGB camera
+    stereo->setDepthAlign(dai::CameraBoardSocket::CAM_A); // Align depth to Color camera
 
     // Link mono cameras to stereo depth node
     monoLeft->out.link(stereo->left);
@@ -200,17 +200,17 @@ std::tuple<dai::Pipeline, int, int, int, int> createPipeline(
   }
 
   // Returns the pipeline and configured dimensions
-  return std::make_tuple(pipeline, stereoWidth, stereoHeight, rgbWidth, rgbHeight);
+  return std::make_tuple(pipeline, stereoWidth, stereoHeight, colorWidth, colorHeight);
 }
 
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv); // Initializes ROS
-  auto node = rclcpp::Node::make_shared("rgbd_stereo_node"); // Creates a ROS node
+  auto node = rclcpp::Node::make_shared("camera_node"); // Creates a ROS node
 
   // Declare and get ROS parameters
   std::string tfPrefix;
-  bool lrcheck, extended, subpixel, use_depth, use_disparity, use_lr_raw, pc_color, only_rgb,
+  bool lrcheck, extended, subpixel, use_depth, use_disparity, use_lr_raw, pc_color, only_color,
     use_pointcloud;
   int confidence, LRchecktresh;
   int monoWidth, monoHeight, colorWidth, colorHeight;
@@ -225,7 +225,7 @@ int main(int argc, char ** argv)
   node->declare_parameter("use_disparity", true);
   node->declare_parameter("use_lr_raw", true);
   node->declare_parameter("pc_color", true);
-  node->declare_parameter("only_rgb", false);
+  node->declare_parameter("only_color", false);
   node->declare_parameter("use_pointcloud", true);
 
   node->get_parameter("tf_prefix", tfPrefix);
@@ -238,10 +238,10 @@ int main(int argc, char ** argv)
   node->get_parameter("use_disparity", use_disparity);
   node->get_parameter("use_lr_raw", use_lr_raw);
   node->get_parameter("pc_color", pc_color);
-  node->get_parameter("only_rgb", only_rgb);
+  node->get_parameter("only_color", only_color);
   node->get_parameter("use_pointcloud", use_pointcloud);
 
-  if (only_rgb) {
+  if (only_color) {
     use_depth = false;
     use_disparity = false;
     use_lr_raw = false;
@@ -274,7 +274,7 @@ int main(int argc, char ** argv)
       usbStrings[static_cast<int32_t>(device.getUsbSpeed())].c_str());
 
   RCLCPP_INFO(node->get_logger(), "- Color resolution: %dx%d", colorWidth, colorHeight);
-  RCLCPP_INFO(node->get_logger(), "- RGB camera activated");
+  RCLCPP_INFO(node->get_logger(), "- Color camera activated");
 
   if (use_lr_raw || use_depth || use_disparity) {
     RCLCPP_INFO(node->get_logger(), "- Mono resolution: %dx%d", monoWidth, monoHeight);
@@ -299,47 +299,47 @@ int main(int argc, char ** argv)
   }
   RCLCPP_INFO(node->get_logger(), "-------------------------------");
 
-  // Creates publishers for RGB, left, right, left rectified, right rectified, depth, and disparity images
+  // Creates publishers for color, left, right, left rectified, right rectified, depth, and disparity images
   std::unique_ptr<dai::rosBridge::BridgePublisher<sensor_msgs::msg::Image,
-    dai::ImgFrame>> rgbPublish, leftPublish, rightPublish, leftRectPublish, rightRectPublish,
+    dai::ImgFrame>> colorPublish, leftPublish, rightPublish, leftRectPublish, rightRectPublish,
     depthPublish;
   std::unique_ptr<dai::rosBridge::BridgePublisher<stereo_msgs::msg::DisparityImage,
     dai::ImgFrame>> dispPublish;
 
-  // Creates image converters for RGB, left, right, and depth images
-  dai::rosBridge::ImageConverter rgbConverter(tfPrefix + "_rgb_camera_optical_frame", false);
+  // Creates image converters for color, left, right, and depth images
+  dai::rosBridge::ImageConverter colorConverter(tfPrefix + "_rgb_camera_optical_frame", false);
   dai::rosBridge::ImageConverter leftConverter(tfPrefix + "_left_camera_optical_frame", true);
   dai::rosBridge::ImageConverter rightConverter(tfPrefix + "_right_camera_optical_frame", true);
-  dai::rosBridge::ImageConverter depthConverter = pc_color ? rgbConverter : rightConverter;
+  dai::rosBridge::ImageConverter depthConverter = pc_color ? colorConverter : rightConverter;
   dai::rosBridge::DisparityConverter dispConverter(tfPrefix + "_right_camera_optical_frame", 880,
     7.5, 20, 2000);
 
-  // Creates camera info for RGB, left, right, and depth images
-  auto rgbCameraInfo = rgbConverter.calibrationToCameraInfo(calibrationHandler,
+  // Creates camera info for color, left, right, and depth images
+  auto colorCameraInfo = colorConverter.calibrationToCameraInfo(calibrationHandler,
     dai::CameraBoardSocket::CAM_A, colorWidth, colorHeight);
   auto leftCameraInfo = leftConverter.calibrationToCameraInfo(calibrationHandler,
     dai::CameraBoardSocket::CAM_B, monoWidth, monoHeight);
   auto rightCameraInfo = leftConverter.calibrationToCameraInfo(calibrationHandler,
     dai::CameraBoardSocket::CAM_C, monoWidth, monoHeight);
-  auto depthCameraInfo = pc_color ? rgbCameraInfo : rightCameraInfo;
+  auto depthCameraInfo = pc_color ? colorCameraInfo : rightCameraInfo;
 
-  // Converts and publishes RGB images to ROS
-  auto rgbQueue = device.getOutputQueue("rgb", 30, false);
-  rgbPublish = std::make_unique<dai::rosBridge::BridgePublisher<sensor_msgs::msg::Image,
+  // Converts and publishes Color images to ROS
+  auto colorQueue = device.getOutputQueue("color", 30, false);
+  colorPublish = std::make_unique<dai::rosBridge::BridgePublisher<sensor_msgs::msg::Image,
       dai::ImgFrame>>(
-    rgbQueue,
+    colorQueue,
     node,
-    std::string("rgb/image"),
+    std::string("color/image"),
     std::bind(&dai::rosBridge::ImageConverter::toRosMsg,
-                    &rgbConverter,  // since the converter has the same frame name
+                    &colorConverter,  // since the converter has the same frame name
                                     // and image type is also same we can reuse it
                     std::placeholders::_1,
                     std::placeholders::_2),
     30,
-    rgbCameraInfo,
-    "rgb");
+    colorCameraInfo,
+    "color");
 
-  rgbPublish->addPublisherCallback(); // addPublisherCallback works only when the dataqueue is non blocking.
+  colorPublish->addPublisherCallback(); // addPublisherCallback works only when the dataqueue is non blocking.
 
   if (use_lr_raw) {
     // Converts and publishes left and right raw images to ROS
